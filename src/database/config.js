@@ -7,7 +7,9 @@ module.exports = {
     database: process.env.DB_NAME,
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
-    dialect: 'mysql',
+    dialect: 'sqlite',
+    storage: './database.sqlite'
+    
   },
   test: {
     username: process.env.DB_USER,
@@ -15,7 +17,8 @@ module.exports = {
     database: process.env.DB_NAME_TEST || process.env.DB_NAME,
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
-    dialect: 'mysql',
+    dialect: 'sqlite',
+    storage: 'memory',
     logging: false,
   },
   production: {
