@@ -1,51 +1,65 @@
-let usuarios = [
-  { id: 1, nome: "Usuário Padrão", email: "padrao@email.com", senha: "123", tipo: "aluno" }
-];
-let proximoId = 2;
+const { criarUsuario, listarUsuarios, buscarUsuarioID, buscarUsuarioPorEmail, atualizarUsuario, deletarUsuario } = require('../services/usuarioService');
 
-const usuarioController = {
-  listar: (req, res) => {
-    return res.status(200).json(usuarios);
-  },
-
-  buscarPorId: (req, res) => {
-    const usuario = usuarios.find(u => u.id === parseInt(req.params.id));
-    if (!usuario) return res.status(404).send();
-    return res.status(200).json(usuario);
-  },
-
-  criar: (req, res) => {
-    const { nome, email, senha, tipo } = req.body;
+const criar = async (req, res) => {
+    const { nome, email, senha, role } = req.body;
 
     if (!nome || !email) {
-      return res.status(400).send();
+        return res.status(400).json({ erro: 'nome e email são obrigatórios' });
     }
 
-    const emailExiste = usuarios.some(u => u.email === email);
+    const emailExiste = await buscarUsuarioPorEmail(email);
     if (emailExiste) {
-      return res.status(400).send();
+        return res.status(400).json({ erro: 'email já cadastrado' });
     }
 
-    const novoUsuario = { id: proximoId++, nome, email, senha, tipo };
-    usuarios.push(novoUsuario);
-    return res.status(201).json(novoUsuario);
-  },
+    const novoUsuario = await criarUsuario(nome, email, senha, role);
+    res.status(201).json(novoUsuario);
+}
 
-  atualizar: (req, res) => {
-    const index = usuarios.findIndex(u => u.id === parseInt(req.params.id));
-    if (index === -1) return res.status(404).send();
+const listar = async (req, res) => {
+    const usuarios = await listarUsuarios();
+    res.status(200).json(usuarios);
+}
 
-    usuarios[index] = { ...usuarios[index], ...req.body };
-    return res.status(200).json(usuarios[index]);
-  },
+const buscarPorId = async (req, res) => {
+    const { id } = req.params;
 
-  remover: (req, res) => {
-    const index = usuarios.findIndex(u => u.id === parseInt(req.params.id));
-    if (index === -1) return res.status(404).send();
+    if (!id) {
+        return res.status(400).json({ erro: 'id é obrigatório' });
+    }
 
-    usuarios.splice(index, 1);
-    return res.status(204).send();
-  }
-};
+    const usuario = await buscarUsuarioID(id);
+    if (!usuario) return res.status(404).send();
+    
+    res.status(200).json(usuario);
+}
 
-module.exports = usuarioController;
+const atualizar = async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({ erro: 'id é obrigatório' });
+    }
+
+    const usuarioExistente = await buscarUsuarioID(id);
+    if (!usuarioExistente) return res.status(404).send();
+
+    const usuarioAtualizado = await atualizarUsuario(id, req.body);
+    res.status(200).json(usuarioAtualizado);
+}
+
+const remover = async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({ erro: 'id é obrigatório' });
+    }
+
+    const usuarioExistente = await buscarUsuarioID(id);
+    if (!usuarioExistente) return res.status(404).send();
+
+    await deletarUsuario(id);
+    res.status(204).send();
+}
+
+module.exports = { criar, listar, buscarPorId, atualizar, remover };

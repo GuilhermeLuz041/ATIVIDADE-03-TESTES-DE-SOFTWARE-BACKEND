@@ -2,22 +2,59 @@ const axios = require('axios');
 require('dotenv').config();
 const api = `http://localhost:${process.env.PORT || 3000}`;
 
-describe("Usuários", () => {
-  test("deve retornar uma lista de usuários", async () => {
-    const res = await axios.get(`${api}/usuarios`);
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.data)).toBe(true);
+describe("Testes de Usuários", () => {
+  let usuarioID;
+  const emailPadrao = `padrao_${Date.now()}@email.com`;
+
+  beforeAll(async () => {
+    const res = await axios.post(`${api}/usuarios`, {
+      nome: "Usuário Padrão",
+      email: emailPadrao,
+      senha: "123",
+      role: "aluno"
+    });
+    usuarioID = res.data.id;
   });
 
-  test("deve retornar um usuário pelo id", async () => {
-    const res = await axios.get(`${api}/usuarios/1`);
+  test("POST /usuarios cria um novo usuário", async () => {
+    const res = await axios.post(`${api}/usuarios`, {
+      nome: "João Silva",
+      email: `joao_${Date.now()}@email.com`,
+      senha: "123456",
+      role: "aluno",
+    });
+    expect(res.status).toBe(201);
+    expect(res.data).toHaveProperty("id");
+    expect(res.data.nome).toBe("João Silva");
+    expect(res.data.role).toBe("aluno");
+  });
+
+  test("GET /usuarios/:id busca um usuário por id", async () => {
+    const res = await axios.get(`${api}/usuarios/${usuarioID}`);
     expect(res.status).toBe(200);
     expect(res.data).toHaveProperty("id");
     expect(res.data).toHaveProperty("nome");
     expect(res.data).toHaveProperty("email");
   });
 
-  test("deve retornar 404 para usuário inexistente", async () => {
+  test("GET /usuarios retorna uma lista de usuários", async () => {
+    const res = await axios.get(`${api}/usuarios`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+  });
+
+  test("PUT /usuarios/:id atualiza um usuário", async () => {
+    const res = await axios.put(`${api}/usuarios/${usuarioID}`, { nome: "Usuário Atualizado" });
+    expect(res.status).toBe(200);
+    expect(res.data.nome).toBe("Usuário Atualizado");
+  });
+
+  test("DELETE /usuarios/:id deleta um usuário", async () => {
+    const res = await axios.delete(`${api}/usuarios/${usuarioID}`);
+    expect(res.status).toBe(204);
+  });
+
+  test("deve retornar 404 para usuário inexistente no GET", async () => {
     try {
       await axios.get(`${api}/usuarios/99999`);
     } catch (err) {
@@ -25,25 +62,12 @@ describe("Usuários", () => {
     }
   });
 
-  test("deve criar um novo usuário", async () => {
-    const res = await axios.post(`${api}/usuarios`, {
-      nome: "João Silva",
-      email: `joao_${Date.now()}@email.com`,
-      senha: "123456",
-      tipo: "aluno",
-    });
-    expect(res.status).toBe(201);
-    expect(res.data).toHaveProperty("id");
-    expect(res.data.nome).toBe("João Silva");
-    expect(res.data.tipo).toBe("aluno");
-  });
-
   test("deve retornar 400 ao criar usuário sem nome", async () => {
     try {
       await axios.post(`${api}/usuarios`, {
-        email: "joao@email.com",
+        email: "semnome@email.com",
         senha: "123456",
-        tipo: "aluno",
+        role: "aluno",
       });
     } catch (err) {
       expect(err.response.status).toBe(400);
@@ -53,9 +77,9 @@ describe("Usuários", () => {
   test("deve retornar 400 ao criar usuário sem email", async () => {
     try {
       await axios.post(`${api}/usuarios`, {
-        nome: "João Silva",
+        nome: "Sem Email",
         senha: "123456",
-        tipo: "aluno",
+        role: "aluno",
       });
     } catch (err) {
       expect(err.response.status).toBe(400);
@@ -64,26 +88,13 @@ describe("Usuários", () => {
 
   test("deve retornar 400 ao criar usuário com email já cadastrado", async () => {
     const email = `duplicado_${Date.now()}@email.com`;
-    await axios.post(`${api}/usuarios`, { nome: "Maria Souza", email, senha: "123456", tipo: "aluno" });
+    await axios.post(`${api}/usuarios`, { nome: "Maria Souza", email, senha: "123", role: "aluno" });
 
     try {
-      await axios.post(`${api}/usuarios`, { nome: "Carlos Lima", email, senha: "abcdef", tipo: "aluno" });
+      await axios.post(`${api}/usuarios`, { nome: "Carlos Lima", email, senha: "456", role: "aluno" });
     } catch (err) {
       expect(err.response.status).toBe(400);
     }
-  });
-
-  test("deve atualizar os dados de um usuário", async () => {
-    const criado = await axios.post(`${api}/usuarios`, {
-      nome: "Pedro Antigo",
-      email: `pedro_${Date.now()}@email.com`,
-      senha: "123456",
-      tipo: "aluno",
-    });
-
-    const res = await axios.put(`${api}/usuarios/${criado.data.id}`, { nome: "Pedro Novo" });
-    expect(res.status).toBe(200);
-    expect(res.data.nome).toBe("Pedro Novo");
   });
 
   test("deve retornar 404 ao atualizar usuário inexistente", async () => {
@@ -92,18 +103,6 @@ describe("Usuários", () => {
     } catch (err) {
       expect(err.response.status).toBe(404);
     }
-  });
-
-  test("deve remover um usuário", async () => {
-    const criado = await axios.post(`${api}/usuarios`, {
-      nome: "Para Deletar",
-      email: `deletar_${Date.now()}@email.com`,
-      senha: "123456",
-      tipo: "aluno",
-    });
-
-    const res = await axios.delete(`${api}/usuarios/${criado.data.id}`);
-    expect(res.status).toBe(204);
   });
 
   test("deve retornar 404 ao deletar usuário inexistente", async () => {
