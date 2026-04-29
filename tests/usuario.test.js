@@ -4,6 +4,8 @@ const api = `http://localhost:${process.env.PORT || 3000}`;
 
 describe("Testes de Usuários", () => {
   let usuarioID;
+  let usuarioPostID;
+  let usuarioDuplicadoID;
   const emailPadrao = `padrao_${Date.now()}@email.com`;
 
   beforeAll(async () => {
@@ -14,6 +16,15 @@ describe("Testes de Usuários", () => {
       role: "aluno"
     });
     usuarioID = res.data.id;
+  });
+
+  afterAll(async () => {
+    try {
+      if (usuarioPostID) await axios.delete(`${api}/usuarios/${usuarioPostID}`);
+      if (usuarioDuplicadoID) await axios.delete(`${api}/usuarios/${usuarioDuplicadoID}`);
+    } catch (e) {
+      console.log("Falha ao limpar banco", e.message);
+    }
   });
 
   test("POST /usuarios cria um novo usuário", async () => {
@@ -27,6 +38,7 @@ describe("Testes de Usuários", () => {
     expect(res.data).toHaveProperty("id");
     expect(res.data.nome).toBe("João Silva");
     expect(res.data.role).toBe("aluno");
+    usuarioPostID = res.data.id;
   });
 
   test("GET /usuarios/:id busca um usuário por id", async () => {
@@ -88,7 +100,8 @@ describe("Testes de Usuários", () => {
 
   test("deve retornar 400 ao criar usuário com email já cadastrado", async () => {
     const email = `duplicado_${Date.now()}@email.com`;
-    await axios.post(`${api}/usuarios`, { nome: "Maria Souza", email, senha: "123", role: "aluno" });
+    const res = await axios.post(`${api}/usuarios`, { nome: "Maria Souza", email, senha: "123", role: "aluno" });
+    usuarioDuplicadoID = res.data.id;
 
     try {
       await axios.post(`${api}/usuarios`, { nome: "Carlos Lima", email, senha: "456", role: "aluno" });

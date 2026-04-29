@@ -4,6 +4,7 @@ const api = `http://localhost:${process.env.PORT || 3000}`;
 
 describe('Testes de Livros', () => {
   let livroID;
+  let livroPostID;
 
   beforeAll(async () => {
     const res = await axios.post(`${api}/livros`, { 
@@ -14,12 +15,21 @@ describe('Testes de Livros', () => {
     livroID = res.data.id;
   });
 
+  afterAll(async () => {
+    try {
+      if (livroPostID) await axios.delete(`${api}/livros/${livroPostID}`);
+    } catch (e) {
+      console.log("Falha ao limpar banco", e.message);
+    }
+  });
+
   test('POST /livros cria um livro', async () => {
     const res = await axios.post(`${api}/livros`, { titulo: 'Design Patterns', autor: 'Gang of Four', disponibilidade: true });
     expect(res.status).toBe(201);
     expect(res.data.titulo).toBe('Design Patterns');
     expect(res.data.autor).toBe('Gang of Four');
     expect(res.data.disponibilidade).toBe(true);
+    livroPostID = res.data.id;
   });
 
   test('GET /livro/:id busca um livro por id', async () => {
